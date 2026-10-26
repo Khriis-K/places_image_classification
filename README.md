@@ -18,11 +18,11 @@ The dataset, checkpoints, TensorBoard runs, and logs are **not** in git. They li
 Code is edited locally and synced to CARC through git:
 
 ```bash
-git push                                                        # local
-ssh carc 'cd ~/places_image_classification && git pull'         # CARC
+git push                                            # local
+cd ~/places_image_classification && git pull        # CARC (OnDemand terminal or ssh)
 ```
 
-`ssh carc` uses connection sharing (`~/.ssh/config`): log in once in a Git Bash terminal and approve Duo; later `ssh carc ...` commands reuse that connection for 8 hours. Off campus, connect to the USC VPN first. OnDemand JupyterLab (https://ondemand.carc.usc.edu) is handy for TensorBoard and quick interactive checks.
+Each teammate works on their own branch (e.g. `ckuizon/dev`) and merges into `main` through a pull request. Off campus, connect to the USC VPN before using CARC. OnDemand JupyterLab (https://ondemand.carc.usc.edu) is handy for terminals, TensorBoard and quick interactive checks.
 
 Run all jobs under the course account: `--account=irahbari_1147`.
 
