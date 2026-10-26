@@ -1,0 +1,22 @@
+# Dataset and large outputs live on CARC, not in git
+data/
+*.tar
+checkpoints/
+runs/
+logs/
+*.pt
+*.pth
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Course PDFs and the (copyrighted) Places paper stay local
+docs/*.pdf
