@@ -19,7 +19,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from torchvision.utils import make_grid
 
-from data import IMAGENET_MEAN, IMAGENET_STD, build_datasets, build_loaders, build_transforms, read_categories
+from data import IMAGENET_MEAN, IMAGENET_STD, build_datasets, build_loaders, build_transforms, denormalize, read_categories
 
 
 def count_stats(samples, n_classes):
@@ -96,12 +96,6 @@ def plot_augmentations(ds, rng, n=7):
         ax.axis("off")
     fig.tight_layout()
     return fig
-
-
-def denormalize(x):
-    mean = torch.tensor(IMAGENET_MEAN).view(-1, 1, 1)
-    std = torch.tensor(IMAGENET_STD).view(-1, 1, 1)
-    return (x * std + mean).clamp(0, 1)
 
 
 def loader_throughput(loader, n_batches):

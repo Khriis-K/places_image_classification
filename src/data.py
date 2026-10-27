@@ -8,16 +8,32 @@ Expected layout (produced by scripts/extract_data.sh):
     <root>/filelists/places365_val.txt                    "Places365_val_00000001.jpg 0"
 """
 from collections import defaultdict
+import os
 from pathlib import Path
 import random
 
 from PIL import Image
-from torch.utils.data import DataLoader, Dataset
+import torch
+from torch.utils.data import DataLoader, Dataset, DistributedSampler
 from torchvision import transforms
 
 # ImageNet statistics; scripts/explore.py measures Places365's own to compare
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
+
+
+def available_cpus():
+    try:
+        return len(os.sched_getaffinity(0))  # what Slurm actually gave this job
+    except AttributeError:
+        return os.cpu_count()
+
+
+def denormalize(x, mean=IMAGENET_MEAN, std=IMAGENET_STD):
+    """Undo Normalize so a batch can be displayed as images."""
+    mean = torch.tensor(mean).view(-1, 1, 1)
+    std = torch.tensor(std).view(-1, 1, 1)
+    return (x * std + mean).clamp(0, 1)
 
 
 def read_categories(filelist_dir):
@@ -107,16 +123,20 @@ def build_datasets(root, val_fraction=0.05, seed=0, image_size=224, mean=IMAGENE
     }
 
 
-def build_loaders(datasets, batch_size=256, num_workers=8, pin_memory=True):
-    return {
-        split: DataLoader(
+def build_loaders(datasets, batch_size=256, num_workers=8, pin_memory=True, distributed=False):
+    """With distributed=True each process (one per GPU) gets a disjoint 1/world_size share of every split."""
+    loaders = {}
+    for split, ds in datasets.items():
+        train = split == "train"
+        sampler = DistributedSampler(ds, shuffle=train, drop_last=train) if distributed else None
+        loaders[split] = DataLoader(
             ds,
             batch_size=batch_size,
-            shuffle=(split == "train"),
+            shuffle=train and sampler is None,
+            sampler=sampler,
             num_workers=num_workers,
             pin_memory=pin_memory,
             persistent_workers=num_workers > 0,
-            drop_last=(split == "train"),
+            drop_last=train,
         )
-        for split, ds in datasets.items()
-    }
+    return loaders

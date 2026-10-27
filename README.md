@@ -35,3 +35,14 @@ bash scripts/carc_download_data.sh /project2/<account>/places365
 ```
 
 `myaccount` on CARC shows the project name to use for `<account>`.
+
+## Training (single GPU)
+
+From the repo root on CARC:
+
+```bash
+mkdir -p logs
+RUN=r50_1gpu sbatch slurm/train_1gpu.sbatch
+```
+
+The job unpacks the dataset into node-local RAM, then runs `src/train.py`. Checkpoints and TensorBoard logs go to `/scratch1/$USER/runs/$RUN`. Resubmitting with the same `RUN` resumes from the last completed epoch; near the time limit the job requeues itself and resumes automatically. Extra arguments are passed through to `train.py` (e.g. `--epochs 1 --limit-train-batches 300` for a quick test).

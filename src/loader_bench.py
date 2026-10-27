@@ -23,14 +23,7 @@ import torch
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 
-from data import IMAGENET_MEAN, IMAGENET_STD, build_datasets, build_transforms
-
-
-def available_cpus():
-    try:
-        return len(os.sched_getaffinity(0))  # what Slurm actually gave this job
-    except AttributeError:
-        return os.cpu_count()
+from data import IMAGENET_MEAN, IMAGENET_STD, available_cpus, build_datasets, build_transforms
 
 
 def rate(n, seconds):
