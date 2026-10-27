@@ -40,6 +40,8 @@ def parse_args():
     p.add_argument("--warmup-steps", type=int, default=500)
     p.add_argument("--workers", type=int, default=None, help="DataLoader workers per GPU (default: its share of the CPUs)")
     p.add_argument("--amp", action=argparse.BooleanOptionalAction, default=True, help="fp16 mixed precision (CUDA only)")
+    p.add_argument("--channels-last", action=argparse.BooleanOptionalAction, default=True,
+                   help="NHWC memory layout; ~1.5x faster AMP on V100 Tensor Cores (src/train_bench.py)")
     p.add_argument("--pretrained", action=argparse.BooleanOptionalAction, default=True, help="start from ImageNet weights")
     p.add_argument("--limit-train-batches", type=int, default=None, help="cap batches per epoch, for quick tests")
     p.add_argument("--limit-val-batches", type=int, default=None)
@@ -86,14 +88,15 @@ def all_reduce_sum(tensor):
 
 
 @torch.no_grad()
-def evaluate(model, loader, device, amp, limit=None):
+def evaluate(model, loader, device, amp, memory_format, limit=None):
     """Mean cross-entropy (no label smoothing), top-1 and top-5 accuracy over this split."""
     model.eval()
     totals = torch.zeros(4, device=device)  # loss sum, top-1 hits, top-5 hits, images
     for i, (images, labels) in enumerate(loader):
         if limit is not None and i >= limit:
             break
-        images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
+        images = images.to(device, non_blocking=True, memory_format=memory_format)
+        labels = labels.to(device, non_blocking=True)
         with torch.autocast(device.type, dtype=torch.float16, enabled=amp):
             logits = model(images)
         top5 = logits.topk(5, dim=1).indices
@@ -120,6 +123,7 @@ def main():
     else:
         device = torch.device("cpu")
     amp = args.amp and device.type == "cuda"
+    memory_format = torch.channels_last if args.channels_last else torch.contiguous_format
     torch.manual_seed(args.seed)
 
     gpus_on_node = int(os.environ.get("LOCAL_WORLD_SIZE", 1))
@@ -137,7 +141,7 @@ def main():
     global_batch = args.batch_size * world_size
     lr = args.lr * global_batch / 256  # linear scaling rule
 
-    model = build_model(args.pretrained).to(device)
+    model = build_model(args.pretrained).to(device, memory_format=memory_format)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=args.momentum, weight_decay=args.weight_decay)
     warmup = min(args.warmup_steps, total_steps // 5)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, warmup_cosine(warmup, total_steps))
@@ -157,7 +161,8 @@ def main():
         start_epoch, step, best_top1 = ckpt["epoch"] + 1, ckpt["step"], ckpt["best_top1"]
         log(f"Resumed from {last_path}: epoch {start_epoch}/{args.epochs} done, best val top-1 {best_top1:.4f}")
 
-    log(f"{world_size} process(es) on {device.type}, {workers} loader workers each, AMP {'on' if amp else 'off'}")
+    log(f"{world_size} process(es) on {device.type}, {workers} loader workers each, AMP {'on' if amp else 'off'}, "
+        f"channels_last {'on' if args.channels_last else 'off'}")
     log(f"train {len(datasets['train'])} / val {len(datasets['val'])} images, {steps_per_epoch} steps/epoch, "
         f"global batch {global_batch}, peak lr {lr:g}, warmup {warmup} steps")
 
@@ -182,7 +187,8 @@ def main():
                 break
             if is_main and epoch == 0 and i == 0:
                 writer.add_image("train/augmented_batch", make_grid(denormalize(images[:32]), nrow=8), 0)
-            images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
+            images = images.to(device, non_blocking=True, memory_format=memory_format)
+            labels = labels.to(device, non_blocking=True)
             with torch.autocast(device.type, dtype=torch.float16, enabled=amp):
                 logits = model(images)
                 loss = criterion(logits, labels)
@@ -209,7 +215,7 @@ def main():
 
         train_loss, train_hits, train_n = all_reduce_sum(totals).tolist()
         epoch_time = time.perf_counter() - epoch_start
-        val_loss, val_top1, val_top5 = evaluate(model, loaders["val"], device, amp, args.limit_val_batches)
+        val_loss, val_top1, val_top5 = evaluate(model, loaders["val"], device, amp, memory_format, args.limit_val_batches)
         is_best = val_top1 > best_top1
         best_top1 = max(best_top1, val_top1)
 

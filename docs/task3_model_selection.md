@@ -77,7 +77,17 @@ Estimated cost of the plan, at ~10 epochs per training run:
 | Task 9: profiling, fp32 vs. AMP, loader settings | short runs | ~3 |
 | **Total** | | **~35–40 GPU-hours** |
 
-These are estimates from published throughput; Task 4 will measure the real numbers. The wall-clock time of the scaling runs adds up to about 8–10 hours. The plan fits comfortably in the course allocation. In Task 9, we will compare fp32 and AMP on short runs (tens of minutes); a full 10-epoch run in fp32 would take ~13 hours.
+**Measured on CARC** (`src/train_bench.py`, Tesla V100-PCIE-32GB, 8 CPUs, batch 256):
+
+| Configuration | GPU alone (synthetic data) | Full pipeline (real DataLoader) | One epoch |
+|---|---|---|---|
+| fp32 | 354 | — | ~81 min |
+| AMP, default (NCHW) memory layout | 772 | 743 | ~38 min |
+| AMP + channels_last | 1,186 | **1,108** | **~26 min** |
+
+fp32 matches NVIDIA's number, but AMP alone reached only two-thirds of it. The missing step is the **memory layout**. Tensor Cores run fp16 convolutions on **channels-last** data (NHWC: the channel values of each pixel stored next to each other). PyTorch's default is NCHW (one whole channel after another), so cuDNN converts the layout around every convolution. Storing the model and inputs as channels-last removes those conversions and gives 1.5× the speed, so `train.py` uses it by default (`--no-channels-last` restores the old behavior for the Task 9 comparison). With it, the GPU is still the bottleneck: the loader alone supplies 1,763 images/s on this node.
+
+The table of estimates above assumed ~25 min per epoch, which the measured 26 min confirms. The wall-clock time of the scaling runs adds up to about 8–10 hours. The plan fits comfortably in the course allocation. In Task 9, we will compare fp32 and AMP on short runs (tens of minutes); a full 10-epoch run in fp32 would take ~13 hours.
 
 ## What this means for Tasks 4–9
 
