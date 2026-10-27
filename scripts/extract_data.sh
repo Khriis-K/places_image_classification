@@ -24,5 +24,5 @@ if [ ! -f "$DEST/filelists/categories_places365.txt" ]; then
 fi
 
 echo "Train images: $(find "$DEST/data_256" -name '*.jpg' | wc -l) (expect 1803460)"
-echo "Val images:   $(find "$DEST/val_256" -name '*.jpg' | wc -l) (expect 18250)"
+echo "Val images:   $(find "$DEST/val_256" -name '*.jpg' | wc -l) (expect 36500)"
 ls "$DEST/filelists"

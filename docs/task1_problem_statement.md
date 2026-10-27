@@ -30,7 +30,7 @@ We selected **Places365-Standard**, a subset of the MIT CSAIL **Places** databas
 | Mean images per class | ~4,941 |
 | Image format | RGB JPEG, 256×256 |
 | Archive size | ~26 GB |
-| Official validation set | 50 images per class (18,250 total) — `val_256.tar` |
+| Official validation set | 100 images per class (36,500 total) — `val_256.tar`\* |
 | Official test set | 900 images per class (labels withheld) |
 
 We counted the images in each class folder of the archive. The totals match the numbers published in the paper exactly (1,803,460 training images, 3,068–5,000 per class), which confirms that our copy is complete.
@@ -54,7 +54,9 @@ The dataset has a well-documented annotation process and is widely used as a ben
 
 With ~4,900 labeled examples per class, the dataset is large enough to train a CNN from scratch, not just fine-tune one. It also leaves plenty of data for a held-out split. Because labels for the official test set are not public, our evaluation plan is:
 
-- **Training / validation:** split the 1.8 M training images, stratified by class (e.g., 95% / 5%), to tune hyperparameters and select models.
-- **Test:** use the official 18,250-image `val_256` set (50 per class, balanced) as our final held-out test set, never used for tuning.
+- **Training / validation:** split the 1.8 M training images 95% / 5%, stratified by class: 1,713,290 training and 90,170 validation images (~247 per class). The dataset is large enough that 5% still gives a precise accuracy estimate (±0.3 points) while keeping as much data as possible for training.
+- **Test:** use the official `val_256` set (36,500 images, exactly 100 per class) as our final held-out test set, never used for tuning.
+
+\* The paper and the dataset's download page both describe the validation set as 50 images per class. The official `val_256.tar` we downloaded (MD5 verified) and its label file `places365_val.txt` actually contain 100 per class, so we use the full 36,500.
 
 The training set is only mildly imbalanced (the largest class is about 1.6× the smallest, and 93% of classes have exactly 5,000 images). We don't expect imbalance to be a significant issue, but we will report per-class accuracy so that we can check.
