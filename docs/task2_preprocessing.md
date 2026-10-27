@@ -67,4 +67,19 @@ Batches are assembled by a PyTorch `DataLoader`:
 - `persistent_workers=True`, so workers aren't restarted every epoch
 - training set shuffled every epoch
 
-**Baseline throughput:** the DataLoader alone delivers **~294 images/s** (batch 256, 8 workers, no model). At this rate, reading one epoch of 1.71 M images takes about 97 minutes. A V100 can train a ResNet faster than that, so **data loading will be the training bottleneck**. This is the starting point for the profiling and optimization work in Task 9 (more workers, node-local storage, faster JPEG decoding).
+**Baseline throughput:** reading from `/scratch1`, the DataLoader alone delivers only **~294–399 images/s** (8 workers, no model). At this rate, reading one epoch of 1.71 M images takes about 80–97 minutes, slower than a V100 can train.
+
+**Bottleneck diagnosis** (`src/loader_bench.py`, 8 CPU cores):
+
+| Measurement | `/scratch1` (network FS) | Node-local RAM (`$TMPDIR`) |
+|---|---|---|
+| Read one uncached file | 22 ms | 0.03 ms |
+| Decode + augment, 1 core | 361 images/s | 361 images/s |
+| CPU-bound ceiling, 8 cores | ~2,890 images/s | ~2,890 images/s |
+| **DataLoader, 8 workers** | **399 images/s** | **2,190 images/s** |
+
+The CPU work per image is the same in both cases. The difference is opening files: on the network filesystem every file access costs ~22 ms of latency, and each worker reads its files one after another, so 8 workers top out at ≈ 8 × 45 = 360–400 images/s no matter how fast the CPUs are.
+
+**Fix:** each job copies the dataset into node-local RAM-backed storage (`$TMPDIR`, a tmpfs) when it starts, using `scripts/extract_data.sh`. Reading the 25 GB archive from project storage is one large sequential read, which a network filesystem handles well. After that, every image read is a memory access. The copy counts against the job's memory request, so training jobs request 64 GB. Result: **5.5× higher loader throughput** (399 → 2,190 images/s), now limited by JPEG decoding and augmentation on the CPU rather than by I/O. We revisit this, and further CPU-side optimizations, in Task 9.
+
+Other observation: `ColorJitter` is the most expensive transform. It accounts for ~1.1 ms of the 2.4 ms per-image augmentation cost (412 vs. 736 images/s per core with and without it).
