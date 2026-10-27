@@ -19,6 +19,7 @@ import random
 import time
 
 from PIL import Image
+import torch
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 
@@ -69,6 +70,7 @@ def main():
     args = p.parse_args()
 
     cpus = available_cpus()
+    torch.set_num_threads(cpus)  # torch otherwise sizes its thread pool to the whole node
     workers = args.workers or sorted({1, 4, cpus // 2, cpus} - {0})
     print(f"CPUs available to this job: {cpus}   (os.cpu_count={os.cpu_count()}, "
           f"SLURM_CPUS_PER_TASK={os.environ.get('SLURM_CPUS_PER_TASK')}, "
