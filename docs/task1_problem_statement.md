@@ -48,7 +48,7 @@ The labels were collected through a multi-stage human annotation process, not by
 3. A third round used a trained classifier to find likely mislabeled or borderline images and sent them back to human annotators.
 4. A fourth round targeted pairs of categories that are easy to confuse (e.g., *swimming pool indoor* vs. *outdoor*, *art school* vs. *art studio*): workers chose between the two categories directly.
 
-The dataset has a well-documented annotation process and is widely used as a benchmark. Published baselines (e.g., ResNet-152 at ~54.7% Top-1 / ~85.1% Top-5 on the validation set) give us a reference point for judging our model. The relatively low Top-1 accuracy even for strong models shows that the task is hard and that some categories overlap semantically. We expect this to show up in our confusion matrix (Task 6).
+The dataset has a well-documented annotation process and is widely used as a benchmark. Published baselines (e.g., ResNet-152 at 54.74% Top-1 / 85.08% Top-5 on the validation set, averaged over 10 crops per image; paper Table 2) give us a reference point for judging our model. The relatively low Top-1 accuracy even for strong models shows that the task is hard and that some categories overlap semantically. We expect this to show up in our confusion matrix (Task 6).
 
 ### Sufficiency for deep learning
 

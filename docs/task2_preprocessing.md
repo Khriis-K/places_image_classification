@@ -4,7 +4,7 @@ All numbers below come from `src/explore.py`, run on the full extracted dataset 
 
 ## 1. Storage layout
 
-The three official archives (training images, validation images, file lists; ~26 GB total) are stored once in the course's shared project space (`/project2/irahbari_1147/places365`) and verified against the published MD5 checksums. `scripts/extract_data.sh` unpacks them into fast scratch storage (`/scratch1`), which is where training reads from. Keeping the archives packed in project storage avoids putting 1.8 M small files on the shared filesystem, which has a file-count quota.
+The three official archives (training images, validation images, file lists; ~26 GB total) are stored once in the course's shared project space (`/project2/irahbari_1147/places365`) and verified against the published MD5 checksums. At the start of each job, `scripts/extract_data.sh` unpacks them into node-local RAM storage (`$TMPDIR`), which is where training reads from (§5 explains why not `/scratch1`). Keeping the archives packed in project storage avoids putting 1.8 M small files on the shared filesystem, which has a file-count quota.
 
 Labels come from the official file lists (`categories_places365.txt`, `places365_train_standard.txt`, `places365_val.txt`), not from scanning directories. This guarantees our class indices match the published Places365 labels (0–364).
 
