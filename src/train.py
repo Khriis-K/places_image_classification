@@ -5,7 +5,9 @@ it uses distributed data parallel (one process per GPU, see Task 7).
 
 Checkpoints: <out>/last.pt after every epoch, <out>/best.pt whenever validation top-1 improves.
 Rerunning the same command with the same --out resumes from last.pt, so a job that dies or hits its
-time limit loses at most the epoch in progress. TensorBoard logs go to <out>/tensorboard.
+time limit loses at most the epoch in progress. TensorBoard logs go to <out>/tensorboard: they are
+written to node-local storage ($TMPDIR) and copied there once per epoch, so a /scratch1 outage can't
+crash training.
 
 Usage: python src/train.py --root $TMPDIR/places365 --out /scratch1/$USER/runs/r50_1gpu
 """
@@ -13,6 +15,8 @@ import argparse
 import math
 import os
 from pathlib import Path
+import shutil
+import tempfile
 import time
 
 import torch
@@ -94,6 +98,23 @@ def save_checkpoint(path, state, attempts=3, wait_s=30):
                 time.sleep(wait_s)
     print(f"WARNING: giving up on {path} this epoch; continuing to train", flush=True)
     return False
+
+
+def sync_logs(src, dst):
+    """Copy new or grown TensorBoard event files from src to dst. On failure warn and retry next epoch."""
+    try:
+        dst.mkdir(parents=True, exist_ok=True)
+        for f in src.iterdir():
+            target = dst / f.name
+            if target.exists() and target.stat().st_size == f.stat().st_size:
+                continue
+            tmp = dst / ".sync.tmp"  # no "tfevents" in the name, so TensorBoard ignores a partial copy
+            shutil.copyfile(f, tmp)
+            os.replace(tmp, target)
+        return True
+    except OSError as e:
+        print(f"WARNING: copying TensorBoard logs to {dst} failed: {e}; will retry next epoch", flush=True)
+        return False
 
 
 def all_reduce_sum(tensor):
@@ -181,8 +202,12 @@ def main():
     log(f"train {len(datasets['train'])} / val {len(datasets['val'])} images, {steps_per_epoch} steps/epoch, "
         f"global batch {global_batch}, peak lr {lr:g}, warmup {warmup} steps")
 
-    # On resume, hide anything a killed run logged after the checkpoint so the curves stay continuous
-    writer = SummaryWriter(out / "tensorboard", purge_step=step + 1 if step else None) if is_main else None
+    # Log to node-local storage and copy to <out>/tensorboard each epoch (sync_logs). On resume, hide
+    # anything a killed run logged after the checkpoint so the curves stay continuous.
+    tb_dir, tb_staging, writer = out / "tensorboard", None, None
+    if is_main:
+        tb_staging = Path(tempfile.mkdtemp(prefix="tb_", dir=os.environ.get("TMPDIR")))
+        writer = SummaryWriter(tb_staging, purge_step=step + 1 if step else None)
     if is_main and start_epoch == 0:
         model.eval()  # trace in eval mode so BatchNorm statistics aren't touched
         writer.add_graph(model, torch.zeros(1, 3, 224, 224, device=device))
@@ -252,12 +277,14 @@ def main():
             writer.add_scalar("epoch/images_per_s", train_n / epoch_time, n)
             writer.add_scalar("epoch/minutes", epoch_time / 60, n)
             writer.flush()
+            sync_logs(tb_staging, tb_dir)
         log(f"== epoch {epoch + 1}/{args.epochs}  {epoch_time / 60:.1f} min ({train_n / epoch_time:.0f} img/s)  "
             f"train loss {train_loss / train_n:.3f} top-1 {train_hits / train_n:.4f}  "
             f"val loss {val_loss:.3f} top-1 {val_top1:.4f} top-5 {val_top5:.4f}" + ("  [best]" if is_best else ""))
 
     if is_main:
         writer.close()
+        sync_logs(tb_staging, tb_dir)
         log(f"Done. Best val top-1 {best_top1:.4f}; checkpoints in {out}")
     if dist.is_initialized():
         dist.destroy_process_group()
