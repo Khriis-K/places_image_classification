@@ -75,10 +75,25 @@ def warmup_cosine(warmup_steps, total_steps):
     return multiplier
 
 
-def save_checkpoint(path, state):
+def save_checkpoint(path, state, attempts=3, wait_s=30):
+    """Write atomically; retry on I/O errors and, if all attempts fail, warn and keep training.
+
+    /scratch1 is a network filesystem that occasionally drops a node's connection for a while. One
+    failed write shouldn't throw away the run: the previous checkpoint stays valid and the next
+    epoch tries again.
+    """
     tmp = path.with_suffix(".tmp")
-    torch.save(state, tmp)
-    os.replace(tmp, path)  # atomic: a crash mid-save leaves the previous checkpoint intact
+    for attempt in range(1, attempts + 1):
+        try:
+            torch.save(state, tmp)
+            os.replace(tmp, path)  # atomic: a crash mid-save leaves the previous checkpoint intact
+            return True
+        except (OSError, RuntimeError) as e:  # torch reports failed writes as RuntimeError
+            print(f"WARNING: saving {path} failed (attempt {attempt}/{attempts}): {e}", flush=True)
+            if attempt < attempts:
+                time.sleep(wait_s)
+    print(f"WARNING: giving up on {path} this epoch; continuing to train", flush=True)
+    return False
 
 
 def all_reduce_sum(tensor):
