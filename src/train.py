@@ -37,7 +37,7 @@ def parse_args():
     p.add_argument("--out", required=True, help="run directory for checkpoints and TensorBoard logs")
     p.add_argument("--epochs", type=int, default=10)
     p.add_argument("--batch-size", type=int, default=256, help="per GPU")
-    p.add_argument("--lr", type=float, default=0.01, help="per 256 images; scaled linearly with the global batch")
+    p.add_argument("--lr", type=float, default=0.04, help="per 256 images; scaled linearly with the global batch")
     p.add_argument("--momentum", type=float, default=0.9)
     p.add_argument("--weight-decay", type=float, default=1e-4)
     p.add_argument("--label-smoothing", type=float, default=0.1)

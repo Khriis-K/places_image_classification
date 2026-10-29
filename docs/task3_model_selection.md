@@ -94,7 +94,7 @@ The table of estimates above assumed ~25 min per epoch, which the measured 26 mi
 Starting point for Task 4, to be tuned there:
 - `torchvision.models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)`, then `model.fc = nn.Linear(2048, 365)`.
 - **SGD with momentum** 0.9, weight decay 1e-4, batch 256 per GPU (fits on a 32 GB V100 with AMP).
-- Learning rate around 0.01 per 256 images (lower than the ~0.1 used from scratch, so the pretrained weights aren't destroyed early), with a short **warmup** (learning rate ramps up over the first few hundred steps) and **cosine decay** (learning rate falls smoothly to zero by the last epoch).
+- Learning rate around 0.01 per 256 images (lower than the ~0.1 used from scratch, so the pretrained weights aren't destroyed early), with a short **warmup** (learning rate ramps up over the first few hundred steps) and **cosine decay** (learning rate falls smoothly to zero by the last epoch). The Task 4 sweep later settled on 0.04 (`docs/task4_training.md`).
 - **Label smoothing** 0.1: the training targets become 0.9 for the true class instead of 1.0. This discourages overconfidence, which helps when classes overlap as much as these do.
 
 For the scaling study (Task 8), each GPU keeps a batch of 256, so the **global batch** (all GPUs combined) grows from 256 to 2,048. We will scale the learning rate in proportion to the global batch (the **linear scaling rule**, Goyal et al., 2017) and keep the warmup, then report the effect on final accuracy.
