@@ -31,6 +31,15 @@ from torchvision.utils import make_grid
 from data import available_cpus, build_datasets, build_loaders, denormalize
 
 
+# TensorBoard "Custom Scalars" tab: train and validation curves on the same chart (Task 5)
+EPOCH_LAYOUT = {
+    "Per epoch": {
+        "loss (train includes label smoothing)": ["Multiline", ["epoch/train_loss", "epoch/val_loss"]],
+        "accuracy": ["Multiline", ["epoch/train_top1", "epoch/val_top1", "epoch/val_top5"]],
+    },
+}
+
+
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--root", required=True, help="extracted dataset (scripts/extract_data.sh)")
@@ -211,6 +220,7 @@ def main():
     if is_main and start_epoch == 0:
         model.eval()  # trace in eval mode so BatchNorm statistics aren't touched
         writer.add_graph(model, torch.zeros(1, 3, 224, 224, device=device))
+        writer.add_custom_scalars(EPOCH_LAYOUT)
 
     raw_model = model
     if world_size > 1:
