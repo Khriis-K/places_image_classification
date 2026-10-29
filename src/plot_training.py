@@ -7,7 +7,8 @@ Reads <run>/tensorboard of each run and writes to --out:
   <label>_augmented_batch.png, <label>_dataset_*.png   images logged by train.py / explore.py
 
 Usage: python src/plot_training.py --out docs/figures/task5 --name final \
-           "lr 0.04=runs/r50_lr0.04" "lr 0.01=runs/r50_1gpu"
+           "lr 0.04=runs/r50_lr0.04" "lr 0.01=runs/r50_1gpu" "explore=runs/explore"
+       python src/plot_training.py --out docs/figures/task5 --name lr_sweep --val-only "lr 0.005=..." "lr 0.01=..."
        python src/plot_training.py --add-layout runs/r50_1gpu ...   (runs trained before the layout existed)
 """
 import argparse
@@ -16,6 +17,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 from torch.utils.tensorboard import SummaryWriter
 
@@ -47,14 +49,17 @@ def smooth(values, weight=0.9):
     return out
 
 
-def plot_epochs(runs, out, name):
+def plot_epochs(runs, out, name, show_train=True):
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+    runs = [(label, ea) for label, ea in runs if series(ea, "epoch/val_loss")[0]]  # skip runs with no training curves
 
     fig, ax = plt.subplots(figsize=(6, 4))
     for (label, ea), c in zip(runs, colors):
         ax.plot(*series(ea, "epoch/val_loss"), "o-", color=c, label=f"{label} val")
-        ax.plot(*series(ea, "epoch/train_loss"), "s--", color=c, alpha=0.6, label=f"{label} train")
+        if show_train:
+            ax.plot(*series(ea, "epoch/train_loss"), "s--", color=c, alpha=0.6, label=f"{label} train")
     ax.set(xlabel="epoch", ylabel="cross-entropy loss", title="Loss vs epoch")
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     ax.grid(alpha=0.3)
     ax.legend(fontsize=8)
     fig.tight_layout()
@@ -65,13 +70,15 @@ def plot_epochs(runs, out, name):
     for (label, ea), c in zip(runs, colors):
         steps, val = series(ea, "epoch/val_top1")
         top1.plot(steps, [100 * v for v in val], "o-", color=c, label=f"{label} val")
-        steps, train = series(ea, "epoch/train_top1")
-        top1.plot(steps, [100 * v for v in train], "s--", color=c, alpha=0.6, label=f"{label} train")
+        if show_train:
+            steps, train = series(ea, "epoch/train_top1")
+            top1.plot(steps, [100 * v for v in train], "s--", color=c, alpha=0.6, label=f"{label} train")
         steps, val5 = series(ea, "epoch/val_top5")
         top5.plot(steps, [100 * v for v in val5], "o-", color=c, label=f"{label} val")
     top1.set(xlabel="epoch", ylabel="accuracy (%)", title="Top-1 accuracy vs epoch")
     top5.set(xlabel="epoch", ylabel="accuracy (%)", title="Validation top-5 accuracy vs epoch")
     for ax in (top1, top5):
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.grid(alpha=0.3)
         ax.legend(fontsize=8)
     fig.tight_layout()
@@ -111,6 +118,7 @@ def main():
     p.add_argument("runs", nargs="+", help="label=run_dir (or just run_dir with --add-layout)")
     p.add_argument("--out", default="docs/figures/task5")
     p.add_argument("--name", default="training", help="prefix for the plot filenames")
+    p.add_argument("--val-only", action="store_true", help="leave out the training curves (for comparing many runs)")
     p.add_argument("--add-layout", action="store_true", help="only write the Custom Scalars layout into each run")
     args = p.parse_args()
 
@@ -127,10 +135,11 @@ def main():
     for spec in args.runs:
         label, _, run_dir = spec.rpartition("=")
         runs.append((label or Path(run_dir).name, load(run_dir)))
-    plot_epochs(runs, out, args.name)
+    plot_epochs(runs, out, args.name, show_train=not args.val_only)
     plot_steps(*runs[0], out, args.name)
-    for label, ea in runs:
-        save_images(label, ea, out)
+    if not args.val_only:
+        for label, ea in runs:
+            save_images(label, ea, out)
     print(f"figures written to {out}: {sorted(f.name for f in out.glob('*.png'))}")
 
 
