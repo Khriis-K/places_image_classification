@@ -94,7 +94,7 @@ The model's probability for its top guess is a useful signal of whether to trust
 | 0.6–0.8 | 7,422 | 74% |
 | 0.8 and up | 6,985 | 91% |
 
-Accuracy rises steadily with confidence, and each bin's accuracy is close to its probability range. The model is roughly **calibrated**: when it says 70%, it is right about 70% of the time. This is partly due to label smoothing (Task 4), which discourages overconfident outputs.
+Accuracy rises steadily with confidence, and each bin's accuracy is close to its probability range. The model is roughly **calibrated**: when it says 70%, it is right about 70% of the time. Label smoothing (Task 4) discourages overconfident outputs and is known to help with this, though we didn't train a model without it to check.
 
 ## 4. Comparing the two learning rates
 
