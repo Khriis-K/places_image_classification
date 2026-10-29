@@ -115,7 +115,7 @@ def plot_per_class(run, label):
     ax.hist(acc, bins=np.arange(0, 101, 5), color=BAR, edgecolor="white", linewidth=2)
     mean = np.nanmean(acc)
     ax.axvline(mean, color="#1a1a1a", linewidth=1.5, linestyle="--")
-    ax.text(mean + 1, ax.get_ylim()[1] * 0.92, f"mean {mean:.1f}%", fontsize=8)
+    ax.text(mean - 1, ax.get_ylim()[1] * 0.95, f"mean {mean:.1f}%", fontsize=8, ha="right")
     ax.set(xlabel="top-1 accuracy of the class (%)", ylabel="number of classes",
            title=f"Per-class top-1 accuracy, {len(acc)} classes ({label})")
     ax.grid(axis="y", alpha=0.3)
