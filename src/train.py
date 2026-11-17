@@ -7,11 +7,13 @@ Checkpoints: <out>/last.pt after every epoch, <out>/best.pt whenever validation 
 Rerunning the same command with the same --out resumes from last.pt, so a job that dies or hits its
 time limit loses at most the epoch in progress. TensorBoard logs go to <out>/tensorboard: they are
 written to node-local storage ($TMPDIR) and copied there once per epoch, so a /scratch1 outage can't
-crash training.
+crash training. <out>/timing.jsonl gets one line per finished epoch (training and validation seconds,
+GPUs, nodes, accuracy) for the 1-GPU vs. multi-GPU comparisons in Tasks 7-8.
 
 Usage: python src/train.py --root $TMPDIR/places365 --out /scratch1/$USER/runs/r50_1gpu
 """
 import argparse
+import json
 import math
 import os
 from pathlib import Path
@@ -126,6 +128,15 @@ def sync_logs(src, dst):
         return False
 
 
+def append_timing(path, record):
+    """Add one JSON line to timing.jsonl. Losing a line to a /scratch1 glitch must not stop training."""
+    try:
+        with open(path, "a") as f:
+            f.write(json.dumps(record) + "\n")
+    except OSError as e:
+        print(f"WARNING: writing {path} failed: {e}", flush=True)
+
+
 def all_reduce_sum(tensor):
     if dist.is_initialized():
         dist.all_reduce(tensor)
@@ -156,6 +167,7 @@ def evaluate(model, loader, device, amp, memory_format, limit=None):
 
 
 def main():
+    process_start = time.perf_counter()
     args = parse_args()
     rank, world_size, local_rank = setup_distributed()
     is_main = rank == 0
@@ -172,6 +184,7 @@ def main():
     torch.manual_seed(args.seed)
 
     gpus_on_node = int(os.environ.get("LOCAL_WORLD_SIZE", 1))
+    nodes = world_size // gpus_on_node
     cpus = max(1, available_cpus() // gpus_on_node)  # this process's share of the node's CPUs
     torch.set_num_threads(cpus)
     workers = cpus if args.workers is None else args.workers
@@ -206,7 +219,7 @@ def main():
         start_epoch, step, best_top1 = ckpt["epoch"] + 1, ckpt["step"], ckpt["best_top1"]
         log(f"Resumed from {last_path}: epoch {start_epoch}/{args.epochs} done, best val top-1 {best_top1:.4f}")
 
-    log(f"{world_size} process(es) on {device.type}, {workers} loader workers each, AMP {'on' if amp else 'off'}, "
+    log(f"{world_size} process(es) on {nodes} node(s), {device.type}, {workers} loader workers each, AMP {'on' if amp else 'off'}, "
         f"channels_last {'on' if args.channels_last else 'off'}")
     log(f"train {len(datasets['train'])} / val {len(datasets['val'])} images, {steps_per_epoch} steps/epoch, "
         f"global batch {global_batch}, peak lr {lr:g}, warmup {warmup} steps")
@@ -225,6 +238,7 @@ def main():
     raw_model = model
     if world_size > 1:
         model = DDP(model, device_ids=[local_rank] if device.type == "cuda" else None)
+    log(f"Setup took {time.perf_counter() - process_start:.0f} s (datasets, model, process group)")
 
     for epoch in range(start_epoch, args.epochs):
         if world_size > 1:
@@ -265,7 +279,9 @@ def main():
 
         train_loss, train_hits, train_n = all_reduce_sum(totals).tolist()
         epoch_time = time.perf_counter() - epoch_start
+        val_start = time.perf_counter()
         val_loss, val_top1, val_top5 = evaluate(model, loaders["val"], device, amp, memory_format, args.limit_val_batches)
+        val_time = time.perf_counter() - val_start  # evaluate() ends in an all-reduce, so all ranks are done
         is_best = val_top1 > best_top1
         best_top1 = max(best_top1, val_top1)
 
@@ -286,16 +302,27 @@ def main():
             writer.add_scalar("epoch/val_top5", val_top5, n)
             writer.add_scalar("epoch/images_per_s", train_n / epoch_time, n)
             writer.add_scalar("epoch/minutes", epoch_time / 60, n)
+            writer.add_scalar("epoch/val_minutes", val_time / 60, n)
             writer.flush()
             sync_logs(tb_staging, tb_dir)
+            # Written after the checkpoint, so a resumed run never records the same epoch twice
+            append_timing(out / "timing.jsonl", {
+                "epoch": n, "gpus": world_size, "nodes": nodes, "global_batch": global_batch, "peak_lr": lr,
+                "train_s": round(epoch_time, 2), "val_s": round(val_time, 2), "train_images": int(train_n),
+                "images_per_s": round(train_n / epoch_time, 1), "train_loss": train_loss / train_n,
+                "train_top1": train_hits / train_n, "val_loss": val_loss, "val_top1": val_top1, "val_top5": val_top5,
+                "job_id": os.environ.get("SLURM_JOB_ID"), "time": time.time(),
+            })
         log(f"== epoch {epoch + 1}/{args.epochs}  {epoch_time / 60:.1f} min ({train_n / epoch_time:.0f} img/s)  "
             f"train loss {train_loss / train_n:.3f} top-1 {train_hits / train_n:.4f}  "
-            f"val loss {val_loss:.3f} top-1 {val_top1:.4f} top-5 {val_top5:.4f}" + ("  [best]" if is_best else ""))
+            f"val loss {val_loss:.3f} top-1 {val_top1:.4f} top-5 {val_top5:.4f} ({val_time:.0f} s)"
+            + ("  [best]" if is_best else ""))
 
     if is_main:
         writer.close()
         sync_logs(tb_staging, tb_dir)
-        log(f"Done. Best val top-1 {best_top1:.4f}; checkpoints in {out}")
+        log(f"Done. Best val top-1 {best_top1:.4f}; checkpoints in {out}. "
+            f"This process ran {(time.perf_counter() - process_start) / 60:.1f} min")
     if dist.is_initialized():
         dist.destroy_process_group()
 
