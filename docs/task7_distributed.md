@@ -2,16 +2,16 @@
 
 ## Result
 
-We trained the same ResNet-50 on **4 V100 GPUs spread over 2 nodes** with PyTorch **distributed data parallel (DDP)**. The 10-epoch run took **71.5 minutes** of training and validation, against **~265 minutes** on one GPU: a **3.7× speedup**, or **93% parallel efficiency**. Final accuracy was the same: **56.73% top-1 / 86.73% top-5** on our validation set, against 56.70% / 86.65% on one GPU.
+We trained the same ResNet-50 on **4 V100 GPUs spread over 2 nodes** with PyTorch **distributed data parallel (DDP)**. The 10-epoch run took **71.6 minutes** of training and validation, against **~265 minutes** on one GPU: a **3.7× speedup**, or **93% parallel efficiency**. Final accuracy was the same: **56.73% top-1 / 86.73% top-5** on our validation set, against 56.70% / 86.65% on one GPU.
 
 | | 1 GPU (Task 4) | **4 GPUs, 2 nodes** |
 |---|---|---|
 | Run | `r50_lr0.04` | **`r50_ddp_2n4g`** |
 | Global batch / peak learning rate | 256 / 0.04 | 1,024 / 0.16 |
-| Training throughput (epochs 2–10) | 1,103 img/s | **4,111 img/s** |
-| Training time, 10 epochs | 259.3 min | **69.8 min** |
+| Training throughput (epochs 2–10) | 1,103 img/s | **4,122 img/s** |
+| Training time, 10 epochs | 259.3 min | **70.0 min** |
 | Validation time, 10 epochs | ~6 min | 1.7 min |
-| **Training + validation** | **~265 min (4 h 25 min)** | **71.5 min (1 h 12 min)** |
+| **Training + validation** | **~265 min (4 h 25 min)** | **71.6 min (1 h 12 min)** |
 | Whole Slurm job (incl. unpacking the dataset, start-up) | ~4.5 h if uninterrupted | 75 min |
 | Speedup (training + validation) | 1× | **3.71×** |
 | Parallel efficiency (speedup ÷ GPUs) | — | **93%** |
@@ -61,7 +61,7 @@ Each finished epoch adds a line to `/scratch1/$USER/runs/<run>/timing.jsonl`: tr
 - **The first epoch is slower** (7.6 min, against 6.9 later). The data loader workers start up, and cuDNN tries several algorithms for each layer before settling on the fastest. This happens on one GPU too, but costs relatively more when the whole run is short.
 - **Start-up costs don't shrink.** Unpacking the dataset (1–2 min) and starting the processes (43 s) take as long on 4 GPUs as on 1, so they are a bigger share of a 75-minute job than of a 4.5-hour one.
 
-At a steady rate (epochs 2–10), 4 GPUs process 4,111 img/s against 1,103: 3.73×, or 93% efficiency. The data loader isn't the limit: each GPU still has 8 CPU workers, as on one GPU, and Task 3 measured those at 1,763 img/s per GPU, well above the ~1,030 img/s each GPU consumes here.
+At a steady rate (epochs 2–10), 4 GPUs process 4,122 img/s against 1,103: 3.74×, or 93% efficiency. The data loader isn't the limit: each GPU still has 8 CPU workers, as on one GPU, and Task 3 measured those at 1,763 img/s per GPU, well above the ~1,030 img/s each GPU consumes here.
 
 ## Accuracy is unchanged
 
@@ -74,7 +74,7 @@ The final accuracy differs by 0.03 points, far inside the ±0.2-point measuremen
 
 ## Cost
 
-Finishing 3.7× sooner isn't free: 4 GPUs for 71.5 min is 4.8 GPU-hours, against 4.4 for one GPU, about 8% more of the course allocation, which is the 93% efficiency seen from the other side.
+Finishing 3.7× sooner isn't free: 4 GPUs for 71.6 min is 4.8 GPU-hours, against 4.4 for one GPU, about 8% more of the course allocation, which is the 93% efficiency seen from the other side.
 
 ## Toward Task 8
 
@@ -82,9 +82,9 @@ The same reservation window also ran the 2-GPU (one node) and 8-GPU (4 nodes) co
 
 | GPUs | Nodes | Run | Throughput (epochs 2–10) | Train + val | Speedup | Efficiency | Val top-1 |
 |---|---|---|---|---|---|---|---|
-| 1 | 1 | `r50_lr0.04` | 1,103 img/s | ~265 min | 1× | — | 56.70% |
-| 2 | 1 | `r50_ddp_1n2g` | 2,109 img/s | 138.6 min | 1.91× | 96% | 56.81% |
-| 4 | 2 | `r50_ddp_2n4g` | 4,111 img/s | 71.5 min | 3.71× | 93% | 56.73% |
-| 8 | 4 | `r50_ddp_4n8g` | 8,070 img/s | 36.9 min | 7.19× | 90% | 56.75% |
+| 1 | 1 | `r50_lr0.04` | 1,103 img/s | ~265 min | 1× | 100% | 56.70% |
+| 2 | 1 | `r50_ddp_1n2g` | 2,109 img/s | 139.1 min | 1.91× | 95.5% | 56.81% |
+| 4 | 2 | `r50_ddp_2n4g` | 4,122 img/s | 71.6 min | 3.71× | 92.6% | 56.73% |
+| 8 | 4 | `r50_ddp_4n8g` | 8,070 img/s | 37.0 min | 7.18× | 89.8% | 56.75% |
 
-Task 8 turns this into speedup and efficiency plots and looks at where the lost time goes. One early observation: 2 GPUs on a single node, with no network involved, already lose 4% of perfect scaling, so not all the overhead comes from InfiniBand.
+Task 8 (`docs/task8_scaling.md`) turns this into speedup and efficiency plots and looks at where the lost time goes. One early observation: 2 GPUs on a single node, with no network involved, already lose 4% of perfect scaling, so not all the overhead comes from InfiniBand.
