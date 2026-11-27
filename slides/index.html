@@ -6,11 +6,10 @@
 <title>Places365 Scene Classification</title>
 <!--
   HOW TO EDIT (full guide: slides/README.md)
-  - Open this file in a browser. Arrow keys / space / click to move. F = fullscreen, N = speaker notes.
+  - Open this file in a browser. Arrow keys / space / click to move. F = fullscreen.
   - Edit ONLY your own section (between your ===== BEGIN / END ===== markers).
     Different sections merge cleanly in git; editing someone else's lines causes conflicts.
   - Anything with class="todo" shows up yellow so we can spot unfinished slides. Delete it when done.
-  - Speaker notes go in <aside class="notes">…</aside> inside the slide. They never show on the slide.
   - Add data-hidden to a <section> to skip it without deleting it.
   - Figures: use paths relative to this file, e.g. ../docs/figures/task6/top_confusions.png
 -->
@@ -107,16 +106,7 @@
   .divider .foot, .title-slide .foot { color: rgba(0,0,0,0.35); }
   .divider .foot { color: rgba(255,255,255,0.6); }
 
-  .notes { display: none; }
 
-  /* ---------- speaker notes panel ---------- */
-  #notes-panel {
-    position: fixed; left: 0; right: 0; bottom: 0; max-height: 34vh; overflow: auto;
-    background: #22252b; color: #e8eaee; font-size: 16px; line-height: 1.5;
-    padding: 12px 20px; border-top: 3px solid var(--accent-2); display: none; z-index: 10;
-  }
-  body.show-notes #notes-panel { display: block; }
-  #notes-panel .who { color: var(--accent-2); font-weight: 700; margin-right: 8px; }
 
   /* ---------- print / save as PDF: one slide per page ---------- */
   @media print {
@@ -124,7 +114,6 @@
     html, body { background: #fff; overflow: visible; height: auto; }
     .slide { display: flex !important; position: relative; left: 0; top: 0; transform: none; page-break-after: always; break-after: page; }
     .slide[data-hidden] { display: none !important; }
-    #notes-panel { display: none !important; }
     .todo { background: none; outline: none; }
     .todo::before { content: ""; }
   }
@@ -141,7 +130,6 @@
   <h1>What kind of place is this?<br>Scene classification on Places365</h1>
   <p class="sub">ResNet-50 on 1.8M images, trained on 1 to 8 GPUs on USC CARC</p>
   <div class="team">Ashley Zapata Minero · Naaz Vemmerath Kulangara · Halas Graden · Christopher Kuizon</div>
-  <aside class="notes">Naaz opens: introduce the team and the one-sentence goal.</aside>
 </section>
 
 <section class="slide" data-presenter="Naaz">
@@ -151,8 +139,8 @@
     <table>
       <tr><th>Part</th><th>Tasks</th><th>Presenter</th></tr>
       <tr><td>Problem, dataset, preprocessing</td><td>1–2</td><td>Naaz</td></tr>
-      <tr><td>Model and single-GPU training</td><td>3–4</td><td>Halas</td></tr>
-      <tr><td>Training curves and test-set evaluation</td><td>5–6</td><td>Ashley</td></tr>
+      <tr><td>Model and single-GPU training</td><td>3–5</td><td>Halas</td></tr>
+      <tr><td>Evaluation on the test set</td><td>6</td><td>Ashley</td></tr>
       <tr><td>Distributed training and scaling</td><td>7–8</td><td>Chris</td></tr>
     </table>
   </div>
@@ -176,7 +164,6 @@
       <li class="todo">Why top-5 matters (one image can be a park, a botanical garden, or a picnic area)</li>
     </ul>
   </div>
-  <aside class="notes">TODO Naaz: talking points.</aside>
 </section>
 
 <section class="slide" data-presenter="Naaz">
@@ -195,7 +182,6 @@
       <figcaption>One random image from each of 32 random classes</figcaption>
     </figure>
   </div>
-  <aside class="notes">TODO Naaz: how it was labeled (Mechanical Turk, 3 rounds), why it beats the assignment minimums.</aside>
 </section>
 
 <section class="slide" data-presenter="Naaz">
@@ -216,14 +202,13 @@
       <figcaption>One training image and its random augmentations</figcaption>
     </figure>
   </div>
-  <aside class="notes">TODO Naaz</aside>
 </section>
 <!-- ===== END NAAZ ===== -->
 
 
 <!-- ======================================================================
-     ===== BEGIN HALAS: Tasks 3–4 (model, training) =====
-     Sources: docs/task3_model_selection.md, docs/task4_training.md
+     ===== BEGIN HALAS: Tasks 3–5 (model, training, TensorBoard) =====
+     Sources: docs/task3_model_selection.md, docs/task4_training.md, docs/task5_visualization.md
      ====================================================================== -->
 <section class="slide" data-presenter="Halas">
   <div class="kicker">Task 3 · Model</div>
@@ -236,7 +221,6 @@
       <li class="todo">Why ResNet-50 over the alternatives we considered</li>
     </ul>
   </div>
-  <aside class="notes">TODO Halas</aside>
 </section>
 
 <section class="slide" data-presenter="Halas">
@@ -255,26 +239,23 @@
       <p class="small todo">Training recipe in one line (warmup + cosine, label smoothing, mixed precision)</p>
     </div>
   </div>
-  <aside class="notes">TODO Halas</aside>
 </section>
 
-<!-- ===== END HALAS ===== -->
-
-
-<!-- ======================================================================
-     ===== BEGIN ASHLEY: Tasks 5–6 (TensorBoard curves, evaluation) =====
-     Sources: docs/task5_visualization.md, docs/task6_evaluation.md, docs/figures/task6/summary.md
-     ====================================================================== -->
-<section class="slide" data-presenter="Ashley">
+<section class="slide" data-presenter="Halas">
   <div class="kicker">Task 5 · Visualization</div>
   <h2>Loss and accuracy per epoch (TensorBoard)</h2>
   <div class="cols wide-right">
     <figure><img src="../docs/figures/task5/final_loss.png" alt="Training and validation loss"></figure>
     <figure><img src="../docs/figures/task5/final_accuracy.png" alt="Training and validation accuracy"></figure>
   </div>
-  <aside class="notes">TODO Ashley: what TensorBoard logged, and what the curves show (train vs val gap, no overfitting at 10 epochs?)</aside>
 </section>
+<!-- ===== END HALAS ===== -->
 
+
+<!-- ======================================================================
+     ===== BEGIN ASHLEY: Task 6 (evaluation) =====
+     Sources: docs/task6_evaluation.md, docs/figures/task6/summary.md
+     ====================================================================== -->
 <section class="slide" data-presenter="Ashley">
   <div class="kicker">Task 6 · Evaluation</div>
   <h2>Test set results</h2>
@@ -288,7 +269,6 @@
   <div class="body">
     <p class="todo">How this compares to the published ResNet-50 on Places365, and to our validation number (56.70%)</p>
   </div>
-  <aside class="notes">TODO Ashley</aside>
 </section>
 
 <section class="slide" data-presenter="Ashley">
@@ -297,7 +277,6 @@
   <div class="body">
     <figure><img src="../docs/figures/task6/best_worst_classes.png" alt="Best and worst classes"></figure>
   </div>
-  <aside class="notes">TODO Ashley: distinctive indoor scenes are easy; broad outdoor scenes (river, mountain, valley, coast) are hard.</aside>
 </section>
 
 <section class="slide" data-presenter="Ashley">
@@ -315,7 +294,6 @@
       </ul>
     </div>
   </div>
-  <aside class="notes">TODO Ashley</aside>
 </section>
 <!-- ===== END ASHLEY ===== -->
 
@@ -337,7 +315,6 @@
       <li>How DDP works in one sentence; batch and learning-rate scaling</li>
     </ul>
   </div>
-  <aside class="notes">TODO Chris</aside>
 </section>
 
 <section class="slide" data-presenter="Chris">
@@ -353,7 +330,6 @@
       <tr class="hl"><td class="n">8</td><td class="n">4</td><td class="n">37 m</td><td class="n">7.18×</td><td class="n">90%</td><td class="n">56.75%</td></tr>
     </table>
   </div>
-  <aside class="notes">TODO Chris</aside>
 </section>
 
 <section class="slide" data-presenter="Chris">
@@ -366,7 +342,6 @@
       <li>Large batches lag mid-training (epochs 3–5), then catch up</li>
     </ul>
   </div>
-  <aside class="notes">TODO Chris</aside>
 </section>
 <!-- ===== END CHRIS ===== -->
 
@@ -401,26 +376,22 @@
 <section class="slide divider" data-presenter="All">
   <div class="kicker">Thank you</div>
   <h2>Questions?</h2>
-  <p class="sub">Code and write-ups: docs/task1–task8 in our repo</p>
 </section>
 <!-- ===== END SHARED ===== -->
 
-
-<div id="notes-panel"></div>
 
 <script>
 (function () {
   var slides = Array.prototype.slice.call(document.querySelectorAll('.slide')).filter(function (s) {
     return !s.hasAttribute('data-hidden');
   });
-  var notesPanel = document.getElementById('notes-panel');
   var i = 0;
 
-  // footer: presenter on the left, slide number on the right
+  // footer: slide number on the right
   slides.forEach(function (s, n) {
     var f = document.createElement('div');
     f.className = 'foot';
-    f.innerHTML = '<span>' + (s.getAttribute('data-presenter') || '') + '</span><span>' + (n + 1) + ' / ' + slides.length + '</span>';
+    f.innerHTML = '<span></span><span>' + (n + 1) + ' / ' + slides.length + '</span>';
     s.appendChild(f);
   });
 
@@ -432,9 +403,6 @@
   function show(n) {
     i = Math.max(0, Math.min(slides.length - 1, n));
     slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
-    var note = slides[i].querySelector('.notes');
-    notesPanel.innerHTML = '<span class="who">' + (slides[i].getAttribute('data-presenter') || '') + '</span>' +
-      (note ? note.innerHTML : '<em>No notes</em>');
     if (location.hash !== '#' + (i + 1)) history.replaceState(null, '', '#' + (i + 1));
   }
 
@@ -447,10 +415,8 @@
     else if (k === 'f' || k === 'F') {
       if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen();
     }
-    else if (k === 'n' || k === 'N') document.body.classList.toggle('show-notes');
   });
   document.addEventListener('click', function (e) {
-    if (e.target.closest('#notes-panel')) return;
     show(e.clientX > window.innerWidth / 3 ? i + 1 : i - 1);
   });
   window.addEventListener('resize', fit);

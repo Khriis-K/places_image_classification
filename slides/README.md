@@ -11,7 +11,6 @@ Open `slides/index.html` in any browser (double-click it).
 | → / Space / click right side | Next slide |
 | ← / click left side | Previous slide |
 | F | Fullscreen |
-| N | Show/hide speaker notes |
 
 To export a PDF: Ctrl+P → "Save as PDF", margins "None", background graphics on.
 
@@ -20,8 +19,8 @@ To export a PDF: Ctrl+P → "Save as PDF", margins "None", background graphics o
 | Section | Presenter | Tasks | Read first |
 |---|---|---|---|
 | Title, agenda, Tasks 1–2 | Naaz | Problem, dataset, preprocessing | `docs/task1_*.md`, `docs/task2_*.md` |
-| Tasks 3–4 | Halas | Model, training (+ Task 9 if profiling is ready) | `docs/task3_*.md`, `docs/task4_*.md` |
-| Tasks 5–6 | Ashley | TensorBoard curves, evaluation | `docs/task5_*.md`, `docs/task6_*.md`, `docs/figures/task6/summary.md` |
+| Tasks 3–5 | Halas | Model, training, TensorBoard (+ Task 9 if profiling is ready) | `docs/task3_*.md` to `docs/task5_*.md` |
+| Task 6 | Ashley | Evaluation | `docs/task6_*.md`, `docs/figures/task6/summary.md` |
 | Tasks 7–8, wrap-up | Chris | Distributed training, scaling | `docs/task7_*.md`, `docs/task8_*.md` |
 
 Each section in `index.html` is between `===== BEGIN <NAME>` and `===== END <NAME>` comments. **Only edit inside your own section.** Then git can merge everyone's changes without conflicts.
@@ -29,8 +28,7 @@ Each section in `index.html` is between `===== BEGIN <NAME>` and `===== END <NAM
 The slides already have the main numbers and figures. Your job is to:
 
 1. Fill in or delete everything highlighted **yellow** (`class="todo"`).
-2. Write what you'll say in each slide's `<aside class="notes">`.
-3. Keep the numbers exactly as they appear in the docs, so all our slides match.
+2. Keep the numbers exactly as they appear in the docs, so all our slides match.
 
 Aim for about 3–4 minutes per person, 15 minutes in total.
 
