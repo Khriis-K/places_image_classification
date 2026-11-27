@@ -151,8 +151,8 @@
     <table>
       <tr><th>Part</th><th>Tasks</th><th>Presenter</th></tr>
       <tr><td>Problem, dataset, preprocessing</td><td>1–2</td><td>Naaz</td></tr>
-      <tr><td>Model and single-GPU training</td><td>3–5</td><td>Halas</td></tr>
-      <tr><td>Evaluation on the test set</td><td>6</td><td>Ashley</td></tr>
+      <tr><td>Model and single-GPU training</td><td>3–4</td><td>Halas</td></tr>
+      <tr><td>Training curves and test-set evaluation</td><td>5–6</td><td>Ashley</td></tr>
       <tr><td>Distributed training and scaling</td><td>7–8</td><td>Chris</td></tr>
     </table>
   </div>
@@ -222,8 +222,8 @@
 
 
 <!-- ======================================================================
-     ===== BEGIN HALAS: Tasks 3–5 (model, training, TensorBoard) =====
-     Sources: docs/task3_model_selection.md, docs/task4_training.md, docs/task5_visualization.md
+     ===== BEGIN HALAS: Tasks 3–4 (model, training) =====
+     Sources: docs/task3_model_selection.md, docs/task4_training.md
      ====================================================================== -->
 <section class="slide" data-presenter="Halas">
   <div class="kicker">Task 3 · Model</div>
@@ -258,22 +258,23 @@
   <aside class="notes">TODO Halas</aside>
 </section>
 
-<section class="slide" data-presenter="Halas">
+<!-- ===== END HALAS ===== -->
+
+
+<!-- ======================================================================
+     ===== BEGIN ASHLEY: Tasks 5–6 (TensorBoard curves, evaluation) =====
+     Sources: docs/task5_visualization.md, docs/task6_evaluation.md, docs/figures/task6/summary.md
+     ====================================================================== -->
+<section class="slide" data-presenter="Ashley">
   <div class="kicker">Task 5 · Visualization</div>
   <h2>Loss and accuracy per epoch (TensorBoard)</h2>
   <div class="cols wide-right">
     <figure><img src="../docs/figures/task5/final_loss.png" alt="Training and validation loss"></figure>
     <figure><img src="../docs/figures/task5/final_accuracy.png" alt="Training and validation accuracy"></figure>
   </div>
-  <aside class="notes">TODO Halas: what the curves show (train vs val gap, no overfitting at 10 epochs?)</aside>
+  <aside class="notes">TODO Ashley: what TensorBoard logged, and what the curves show (train vs val gap, no overfitting at 10 epochs?)</aside>
 </section>
-<!-- ===== END HALAS ===== -->
 
-
-<!-- ======================================================================
-     ===== BEGIN ASHLEY: Task 6 (evaluation) =====
-     Sources: docs/task6_evaluation.md, docs/figures/task6/summary.md
-     ====================================================================== -->
 <section class="slide" data-presenter="Ashley">
   <div class="kicker">Task 6 · Evaluation</div>
   <h2>Test set results</h2>
