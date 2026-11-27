@@ -164,7 +164,7 @@ To push from your laptop, signing in once with GitHub Desktop, VS Code, or `gh a
 
 ### 4.3 Create your branch
 
-> **Note:** right now most of the project code lives on `ckuizon/dev` and hasn't been merged into `main` yet. Until it is, branch off `ckuizon/dev`. Once it's merged, branch off `main` instead.
+> **Note:** all project work through Task 8 is merged into `main`. Branch off `main`.
 
 On your laptop:
 
