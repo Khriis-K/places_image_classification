@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Places365 Scene Classification</title>
+<!--
+  HOW TO EDIT (full guide: slides/README.md)
+  - Open this file in a browser. Arrow keys / space / click to move. F = fullscreen.
+  - Edit ONLY your own section (between your ===== BEGIN / END ===== markers).
+    Different sections merge cleanly in git; editing someone else's lines causes conflicts.
+  - Anything with class="todo" shows up yellow so we can spot unfinished slides. Delete it when done.
+  - Add data-hidden to a <section> to skip it without deleting it.
+  - Figures: use paths relative to this file, e.g. ../docs/figures/task6/top_confusions.png
+-->
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #1a1d24;
+    --muted: #5b6270;
+    --line: #dfe2e8;
+    --accent: #9a0000;     /* USC cardinal */
+    --accent-2: #c9a227;   /* USC gold */
+    --panel: #f5f6f8;
+    --todo-bg: #fff6cc;
+    --todo-line: #d9b300;
+    --stage: #15171b;
+    --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--stage); font-family: var(--font); color: var(--ink); }
+  body { overflow: hidden; }
+
+  /* ---------- slide stage: fixed 1280x720, scaled to fit ---------- */
+  .slide {
+    position: absolute; left: 50%; top: 50%;
+    width: 1280px; height: 720px;
+    transform: translate(-50%, -50%) scale(var(--scale, 1));
+    background: var(--bg);
+    padding: 56px 72px 64px;
+    display: none; flex-direction: column;
+    overflow: hidden;
+  }
+  .slide.active { display: flex; }
+  .slide[data-hidden] { display: none !important; }
+
+  /* ---------- type ---------- */
+  h1 { font-size: 60px; line-height: 1.1; margin: 0 0 18px; letter-spacing: -0.5px; }
+  h2 { font-size: 40px; line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.3px; }
+  .kicker { font-size: 16px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  .sub { font-size: 22px; color: var(--muted); margin: 0 0 26px; }
+  p, li { font-size: 24px; line-height: 1.4; }
+  ul { margin: 0; padding-left: 28px; }
+  li { margin: 0 0 12px; }
+  li::marker { color: var(--accent); }
+  strong { color: var(--ink); }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--panel); padding: 1px 6px; border-radius: 4px; }
+  .small, .small li { font-size: 18px; }
+  .muted { color: var(--muted); }
+
+  /* ---------- layout helpers ---------- */
+  .body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .cols { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+  .cols.wide-right { grid-template-columns: 2fr 3fr; }
+  .cols.wide-left  { grid-template-columns: 3fr 2fr; }
+  .rows { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+  .rows > figure { flex: 1; }
+  .rows table { font-size: 17px; }
+  .rows th, .rows td { padding: 5px 14px; }
+  .center { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  figure { margin: 0; height: 100%; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  figure img { max-width: 100%; max-height: 100%; min-height: 0; object-fit: contain; }
+  figcaption { font-size: 15px; color: var(--muted); margin-top: 8px; text-align: center; }
+
+  /* big numbers */
+  .stats { display: flex; gap: 24px; margin: 8px 0 24px; }
+  .stat { flex: 1; background: var(--panel); border-radius: 10px; padding: 18px 22px; border-top: 4px solid var(--accent); }
+  .stat .num { font-size: 46px; font-weight: 700; line-height: 1.05; }
+  .stat .lbl { font-size: 17px; color: var(--muted); margin-top: 6px; }
+
+  /* tables */
+  table { border-collapse: collapse; font-size: 20px; width: 100%; }
+  th, td { padding: 9px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+  th { font-size: 16px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-weight: 600; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.hl td { font-weight: 700; background: #fbf3f3; }
+
+  /* unfinished content: shows yellow until removed */
+  .todo { background: var(--todo-bg); outline: 2px dashed var(--todo-line); outline-offset: 2px; border-radius: 4px; }
+  .todo::before { content: "TODO "; font-weight: 700; color: #8a6d00; }
+
+  /* title slide */
+  .title-slide { justify-content: center; background: linear-gradient(135deg, #fff 0%, #fff 62%, #f8eeee 100%); }
+  .title-slide .bar { width: 120px; height: 6px; background: var(--accent); margin-bottom: 28px; }
+  .team { font-size: 22px; color: var(--muted); margin-top: 34px; }
+
+  /* section divider */
+  .divider { justify-content: center; background: var(--accent); color: #fff; }
+  .divider h2 { font-size: 56px; color: #fff; }
+  .divider .sub { color: #f3dede; }
+  .divider .kicker { color: var(--accent-2); }
+
+  /* footer (filled by JS) */
+  .foot { position: absolute; left: 72px; right: 72px; bottom: 22px; display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); }
+  .divider .foot, .title-slide .foot { color: rgba(0,0,0,0.35); }
+  .divider .foot { color: rgba(255,255,255,0.6); }
+
+
+
+  /* ---------- print / save as PDF: one slide per page ---------- */
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    html, body { background: #fff; overflow: visible; height: auto; }
+    .slide { display: flex !important; position: relative; left: 0; top: 0; transform: none; page-break-after: always; break-after: page; }
+    .slide[data-hidden] { display: none !important; }
+    .todo { background: none; outline: none; }
+    .todo::before { content: ""; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================================================================
+     SHARED: title + agenda (Chris)
+     ====================================================================== -->
+<section class="slide title-slide" data-presenter="Naaz">
+  <div class="bar"></div>
+  <div class="kicker">TAC 450 · Capstone</div>
+  <h1>What kind of place is this?<br>Scene classification on Places365</h1>
+  <p class="sub">ResNet-50 on 1.8M images, trained on 1 to 8 GPUs on USC CARC</p>
+  <div class="team">Ashley Zapata Minero · Naaz Vemmerath Kulangara · Halas Graden · Christopher Kuizon</div>
+</section>
+
+<section class="slide" data-presenter="Naaz">
+  <div class="kicker">Agenda</div>
+  <h2>What we'll cover</h2>
+  <div class="body center">
+    <table>
+      <tr><th>Part</th><th>Tasks</th><th>Presenter</th></tr>
+      <tr><td>Problem, dataset, preprocessing</td><td>1–2</td><td>Naaz</td></tr>
+      <tr><td>Model and single-GPU training</td><td>3–5</td><td>Halas</td></tr>
+      <tr><td>Evaluation on the test set</td><td>6</td><td>Ashley</td></tr>
+      <tr><td>Distributed training and scaling</td><td>7–8</td><td>Chris</td></tr>
+    </table>
+  </div>
+</section>
+<!-- ===== END SHARED ===== -->
+
+
+<!-- ======================================================================
+     ===== BEGIN NAAZ: Tasks 1–2 (problem, dataset, preprocessing) =====
+     Sources: docs/task1_problem_statement.md, docs/task2_preprocessing.md
+     ====================================================================== -->
+<section class="slide" data-presenter="Naaz">
+  <div class="kicker">Task 1 · Problem</div>
+  <h2>Scenes are not objects</h2>
+  <p class="sub">The label depends on the whole image: layout, surfaces, lighting, which objects appear together</p>
+  <div class="body">
+    <ul>
+      <li>A <strong>kitchen</strong> and a <strong>restaurant kitchen</strong> contain almost the same objects</li>
+      <li>An <strong>airport terminal</strong> and a <strong>train platform</strong> look very similar</li>
+      <li>Goal: classify a 256×256 photo into one of <strong>365 scene categories</strong>; report top-1 and top-5</li>
+      <li class="todo">Why top-5 matters (one image can be a park, a botanical garden, or a picnic area)</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" data-presenter="Naaz">
+  <div class="kicker">Task 1 · Dataset</div>
+  <h2>Places365-Standard (MIT CSAIL)</h2>
+  <div class="cols wide-right">
+    <div>
+      <div class="stats" style="flex-direction:column; gap:14px">
+        <div class="stat"><div class="num">1,803,460</div><div class="lbl">training images (~26 GB)</div></div>
+        <div class="stat"><div class="num">365</div><div class="lbl">classes, 3,068–5,000 images each</div></div>
+        <div class="stat"><div class="num">36,500</div><div class="lbl">test images (official val set, 100 per class)</div></div>
+      </div>
+    </div>
+    <figure>
+      <img src="../docs/figures/task5/dataset_samples.png" alt="Sample images from random classes">
+      <figcaption>One random image from each of 32 random classes</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="slide" data-presenter="Naaz">
+  <div class="kicker">Task 2 · Preprocessing</div>
+  <h2>Clean data, but loading it fast was the hard part</h2>
+  <div class="cols">
+    <div>
+      <ul class="small">
+        <li>Every image already 256×256 RGB: no cleaning needed</li>
+        <li>Mild imbalance (largest class 1.6× the smallest): no reweighting</li>
+        <li>Stratified 5% of training held out for validation</li>
+        <li>Dataset unpacked into node-local RAM at job start (69 s) because shared storage couldn't keep the GPU fed</li>
+        <li class="todo">Augmentations used (random crop, flip, …)</li>
+      </ul>
+    </div>
+    <figure>
+      <img src="../docs/figures/task5/dataset_augmentations.png" alt="One image and random augmentations">
+      <figcaption>One training image and its random augmentations</figcaption>
+    </figure>
+  </div>
+</section>
+<!-- ===== END NAAZ ===== -->
+
+
+<!-- ======================================================================
+     ===== BEGIN HALAS: Tasks 3–5 (model, training, TensorBoard) =====
+     Sources: docs/task3_model_selection.md, docs/task4_training.md, docs/task5_visualization.md
+     ====================================================================== -->
+<section class="slide" data-presenter="Halas">
+  <div class="kicker">Task 3 · Model</div>
+  <h2>ResNet-50 with transfer learning</h2>
+  <div class="body">
+    <ul>
+      <li>50-layer convolutional network, starting from <strong>ImageNet-pretrained</strong> weights</li>
+      <li>Replace the 1,000-class output layer with a <strong>365-class</strong> layer</li>
+      <li><strong>Fine-tune every layer</strong> on Places365, not just the new one</li>
+      <li class="todo">Why ResNet-50 over the alternatives we considered</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" data-presenter="Halas">
+  <div class="kicker">Task 4 · Training</div>
+  <h2>10 epochs on one V100</h2>
+  <div class="cols wide-left">
+    <figure>
+      <img src="../docs/figures/task5/lr_sweep_accuracy.png" alt="Learning-rate sweep accuracy">
+    </figure>
+    <div>
+      <table>
+        <tr><th>LR</th><th class="n">Val top-1</th><th class="n">Val top-5</th><th class="n">Time</th></tr>
+        <tr><td>0.01</td><td class="n">56.32%</td><td class="n">86.28%</td><td class="n">4 h 31 m</td></tr>
+        <tr class="hl"><td>0.04</td><td class="n">56.70%</td><td class="n">86.65%</td><td class="n">5 h 10 m</td></tr>
+      </table>
+      <p class="small todo">Training recipe in one line (warmup + cosine, label smoothing, mixed precision)</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-presenter="Halas">
+  <div class="kicker">Task 5 · Visualization</div>
+  <h2>Loss and accuracy per epoch (TensorBoard)</h2>
+  <div class="cols wide-right">
+    <figure><img src="../docs/figures/task5/final_loss.png" alt="Training and validation loss"></figure>
+    <figure><img src="../docs/figures/task5/final_accuracy.png" alt="Training and validation accuracy"></figure>
+  </div>
+</section>
+<!-- ===== END HALAS ===== -->
+
+
+<!-- ======================================================================
+     ===== BEGIN ASHLEY: Task 6 (evaluation) =====
+     Sources: docs/task6_evaluation.md, docs/figures/task6/summary.md
+     ====================================================================== -->
+<section class="slide" data-presenter="Ashley">
+  <div class="kicker">Task 6 · Evaluation</div>
+  <h2>Test set results</h2>
+  <p class="sub">36,500 images never used for training or model selection</p>
+  <div class="stats">
+    <div class="stat"><div class="num">56.5%</div><div class="lbl">top-1, single crop</div></div>
+    <div class="stat"><div class="num">86.6%</div><div class="lbl">top-5, single crop</div></div>
+    <div class="stat"><div class="num">57.2%</div><div class="lbl">top-1, 10-crop average</div></div>
+    <div class="stat"><div class="num">87.1%</div><div class="lbl">top-5, 10-crop average</div></div>
+  </div>
+  <div class="body">
+    <p class="todo">How this compares to the published ResNet-50 on Places365, and to our validation number (56.70%)</p>
+  </div>
+</section>
+
+<section class="slide" data-presenter="Ashley">
+  <div class="kicker">Task 6 · Per class</div>
+  <h2>From 97% (boxing ring) to 2% (river)</h2>
+  <div class="body">
+    <figure><img src="../docs/figures/task6/best_worst_classes.png" alt="Best and worst classes"></figure>
+  </div>
+</section>
+
+<section class="slide" data-presenter="Ashley">
+  <div class="kicker">Task 6 · Confusions</div>
+  <h2>Most mistakes are reasonable</h2>
+  <div class="cols wide-left">
+    <figure><img src="../docs/figures/task6/top_confusions.png" alt="Most-confused class pairs"></figure>
+    <div>
+      <ul class="small">
+        <li>stadium/football → stadium/soccer (35%)</li>
+        <li>ice rink → hockey arena (27%)</li>
+        <li>chemistry lab → biology lab (22%)</li>
+        <li>shower → bathroom (22%)</li>
+        <li>classroom → lecture room (20%)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+<!-- ===== END ASHLEY ===== -->
+
+
+<!-- ======================================================================
+     ===== BEGIN CHRIS: Tasks 7–8 (distributed training, scaling) =====
+     Sources: docs/task7_distributed.md, docs/task8_scaling.md
+     ====================================================================== -->
+<section class="slide" data-presenter="Chris">
+  <div class="kicker">Task 7 · Distributed training</div>
+  <h2>4 GPUs on 2 nodes with PyTorch DDP</h2>
+  <div class="stats">
+    <div class="stat"><div class="num">265 → 72 min</div><div class="lbl">10 epochs, 1 GPU vs 4 GPUs</div></div>
+    <div class="stat"><div class="num">3.7×</div><div class="lbl">speedup (93% efficiency)</div></div>
+    <div class="stat"><div class="num">56.73%</div><div class="lbl">val top-1 (1 GPU: 56.70%)</div></div>
+  </div>
+  <div class="body">
+    <ul class="small todo">
+      <li>How DDP works in one sentence; batch and learning-rate scaling</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" data-presenter="Chris">
+  <div class="kicker">Task 8 · Scaling</div>
+  <h2>8 GPUs: 4 h 25 min → 37 min</h2>
+  <div class="rows">
+    <figure><img src="../docs/figures/task8/scaling.png" alt="Speedup and parallel efficiency"></figure>
+    <table>
+      <tr><th class="n">GPUs</th><th class="n">Nodes</th><th class="n">Total</th><th class="n">Speedup</th><th class="n">Eff.</th><th class="n">Top-1</th></tr>
+      <tr><td class="n">1</td><td class="n">1</td><td class="n">265 m</td><td class="n">1.00×</td><td class="n">100%</td><td class="n">56.70%</td></tr>
+      <tr><td class="n">2</td><td class="n">1</td><td class="n">139 m</td><td class="n">1.91×</td><td class="n">96%</td><td class="n">56.81%</td></tr>
+      <tr><td class="n">4</td><td class="n">2</td><td class="n">72 m</td><td class="n">3.71×</td><td class="n">93%</td><td class="n">56.73%</td></tr>
+      <tr class="hl"><td class="n">8</td><td class="n">4</td><td class="n">37 m</td><td class="n">7.18×</td><td class="n">90%</td><td class="n">56.75%</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="slide" data-presenter="Chris">
+  <div class="kicker">Task 8 · Why not perfectly linear</div>
+  <h2>~97 MB of gradients exchanged every step</h2>
+  <div class="cols wide-left">
+    <figure><img src="../docs/figures/task8/step_time.png" alt="Step time breakdown"></figure>
+    <ul class="small todo">
+      <li>Communication over the network between nodes</li>
+      <li>Large batches lag mid-training (epochs 3–5), then catch up</li>
+    </ul>
+  </div>
+</section>
+<!-- ===== END CHRIS ===== -->
+
+
+<!-- ======================================================================
+     ===== BEGIN HALAS (optional): Task 9 profiling =====
+     Remove data-hidden once results are in.
+     ====================================================================== -->
+<section class="slide" data-presenter="Halas" data-hidden>
+  <div class="kicker">Task 9 · Profiling</div>
+  <h2 class="todo">Where the time goes</h2>
+  <div class="body"><p class="todo">PyTorch Profiler / nvidia-smi results, optimizations tried, before vs after</p></div>
+</section>
+<!-- ===== END HALAS (optional) ===== -->
+
+
+<!-- ======================================================================
+     SHARED: wrap-up (Chris)
+     ====================================================================== -->
+<section class="slide" data-presenter="Chris">
+  <div class="kicker">Wrap-up</div>
+  <h2>Takeaways and next steps</h2>
+  <div class="body">
+    <ul>
+      <li><strong>56.5% top-1 / 86.6% top-5</strong> on 365 scene classes with a fine-tuned ResNet-50</li>
+      <li><strong>7.2× faster on 8 GPUs</strong> with no loss in accuracy</li>
+      <li class="todo">Next: profiling, spatial pyramid pooling, flip averaging at test time</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide divider" data-presenter="All">
+  <div class="kicker">Thank you</div>
+  <h2>Questions?</h2>
+</section>
+<!-- ===== END SHARED ===== -->
+
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide')).filter(function (s) {
+    return !s.hasAttribute('data-hidden');
+  });
+  var i = 0;
+
+  // footer: slide number on the right
+  slides.forEach(function (s, n) {
+    var f = document.createElement('div');
+    f.className = 'foot';
+    f.innerHTML = '<span></span><span>' + (n + 1) + ' / ' + slides.length + '</span>';
+    s.appendChild(f);
+  });
+
+  function fit() {
+    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    document.documentElement.style.setProperty('--scale', s);
+  }
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    if (location.hash !== '#' + (i + 1)) history.replaceState(null, '', '#' + (i + 1));
+  }
+
+  document.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'PageDown' || k === ' ' || k === 'Enter') { show(i + 1); e.preventDefault(); }
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace') { show(i - 1); e.preventDefault(); }
+    else if (k === 'Home') show(0);
+    else if (k === 'End') show(slides.length - 1);
+    else if (k === 'f' || k === 'F') {
+      if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen();
+    }
+  });
+  document.addEventListener('click', function (e) {
+    show(e.clientX > window.innerWidth / 3 ? i + 1 : i - 1);
+  });
+  window.addEventListener('resize', fit);
+  window.addEventListener('hashchange', function () {
+    var n = (parseInt(location.hash.slice(1), 10) || 1) - 1;
+    if (n !== i) show(n);
+  });
+
+  fit();
+  show((parseInt(location.hash.slice(1), 10) || 1) - 1);
+})();
+</script>
+</body>
+</html>
