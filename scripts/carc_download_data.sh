@@ -11,7 +11,7 @@ cd "$DEST"
 
 # -c resumes a partial download if the connection drops
 wget -c "$BASE_URL/train_256_places365standard.tar"   # ~26 GB, 1,803,460 images
-wget -c "$BASE_URL/val_256.tar"                       # 18,250 images (50/class), our test set
+wget -c "$BASE_URL/val_256.tar"                       # 36,500 images (100/class), our test set
 wget -c "$BASE_URL/filelist_places365-standard.tar"   # class names + val labels
 
 # Checksums from http://places2.csail.mit.edu/download-private.html

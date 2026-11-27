@@ -20,3 +20,6 @@ Thumbs.db
 
 # Course PDFs and the (copyrighted) Places paper stay local
 docs/*.pdf
+
+# Session handoff notes for Claude
+docs/handoffs/
