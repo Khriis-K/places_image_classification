@@ -46,3 +46,7 @@ RUN=r50_1gpu sbatch slurm/train_1gpu.sbatch
 ```
 
 The job unpacks the dataset into node-local RAM, then runs `src/train.py`. Checkpoints and TensorBoard logs go to `/scratch1/$USER/runs/$RUN`. Resubmitting with the same `RUN` resumes from the last completed epoch; near the time limit the job requeues itself and resumes automatically. Extra arguments are passed through to `train.py` (e.g. `--epochs 1 --limit-train-batches 300` for a quick test).
+
+## Task 9 profiling
+
+Run `bash scripts/submit_task9.sh` on CARC Discovery to compare FP32, mixed precision and channels-last training on 1, 2, 4 and 8 V100s with the Task 8 node layouts. A dependent collector packages the validation accuracy, throughput, PyTorch traces and GPU utilization samples with a Markdown report. [Submission and retrieval instructions](docs/task9_profiling.md) · [Task 9 results (Word)](docs/Task9_Performance_Report.docx)

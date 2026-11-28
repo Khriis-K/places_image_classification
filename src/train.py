@@ -26,7 +26,6 @@ import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.tensorboard import SummaryWriter
 from torchvision import models
 from torchvision.utils import make_grid
 
@@ -167,6 +166,8 @@ def evaluate(model, loader, device, amp, memory_format, limit=None):
 
 
 def main():
+    from torch.utils.tensorboard import SummaryWriter
+
     process_start = time.perf_counter()
     args = parse_args()
     rank, world_size, local_rank = setup_distributed()
